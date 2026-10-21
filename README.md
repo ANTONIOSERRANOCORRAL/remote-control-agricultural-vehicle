@@ -1,32 +1,44 @@
-# Control remoto de un vehículo no tripulado agrícola
+# Control remoto de un vehículo agrícola no tripulado
 
-Trabajo Fin de Máster del Máster en Ingeniería Industrial (Universidad de Córdoba, 2021), realizado por **Antonio Serrano Corral**. El proyecto desarrolla y prueba un sistema inalámbrico para manejar las funciones principales de un vehículo agrícola multipropósito como paso previo a su futura automatización.
+Proyecto desarrollado por **Antonio Serrano Corral** como Trabajo Fin de Máster del Máster en Ingeniería Industrial de la Universidad de Córdoba (2021).
 
-> La memoria completa está disponible en [`docs/TFM_ASC.pdf`](docs/TFM_ASC.pdf). Las instrucciones que aparecen dentro de la memoria son parte del documento académico; el contenido de este repositorio describe el proyecto y su material técnico.
+## Necesidad y objetivo
 
-## Objetivos y alcance
+El proyecto aborda la necesidad de operar a distancia un vehículo agrícola multipropósito, evitando que el operario tenga que permanecer a bordo durante las maniobras en el campo. El objetivo fue desarrollar un sistema de control remoto para manejar sus funciones principales desde un mando inalámbrico y dar un primer paso hacia la futura automatización del vehículo.
 
-El sistema conecta un mando portátil con el PLC del vehículo. El mando lee joysticks y controles, procesa sus valores y transmite órdenes por radio. En el vehículo, un receptor convierte esas órdenes en mensajes CAN para el PLC, que gobierna los actuadores hidráulicos.
+Para resolverlo, se diseñó e implementó un mando basado en Arduino que transmite órdenes por radiofrecuencia a un receptor instalado en el vehículo. El receptor comunica las instrucciones al PLC mediante el bus CAN para controlar la traslación, la dirección y la nivelación manual y automática. El sistema se ensayó primero con un robot simulador y después mediante pruebas estáticas y dinámicas en el vehículo real.
 
-Las funciones verificadas en el vehículo fueron traslación hacia delante y atrás, dirección delantera y nivelación manual y automática. La memoria también documenta un robot de laboratorio para comprobar la recepción de mensajes CAN y ensayar las respuestas antes de conectar el sistema al vehículo real.
+## Solución técnica
+
+El mando lee joysticks, selectores y pulsadores, procesa sus valores y prepara mensajes de control. El emisor utiliza un Arduino Mega 2560 y un módulo NRF24L01 para transmitirlos. En el vehículo, un Arduino Nano recibe los paquetes y una interfaz basada en MCP2515 los envía por CAN al PLC, encargado de gobernar las electroválvulas hidráulicas.
+
+El mando incorpora pantalla Nextion, alimentación con baterías y BMS, y una carcasa diseñada en CAD e impresa en 3D. Se diseñó una PCB para sustituir el cableado provisional de protoboard por conexiones soldadas. También se añadió un módulo Bluetooth HC-05 para monitorización.
+
+Durante las pruebas de campo, el módulo NRF24L01 estándar mostró un alcance limitado. Se sustituyó en el emisor y el receptor por la variante NRF24L01+PA+LNA, con la que se comprobó el funcionamiento a mayor distancia.
+
+## Funciones y validación
+
+- Traslación hacia delante y hacia atrás.
+- Dirección delantera.
+- Nivelación manual y nivelación automática mediante el inclinómetro y el PLC del vehículo.
+- Pruebas de transmisión y recepción de órdenes CAN con un robot simulador en laboratorio.
+- Ensayos estáticos y dinámicos del sistema instalado en el vehículo agrícola real.
 
 ## Arquitectura
 
 ```mermaid
 flowchart LR
-    A[Controles del mando] --> B[Arduino Mega 2560\nEmisor NRF24L01]
-    B -->|Radiofrecuencia| C[NRF24L01\nReceptor Arduino Nano]
-    C --> D[MCP2515\nBus CAN]
+    A[Joysticks, selectores\ny pulsadores] --> B[Arduino Mega 2560\nEmisor NRF24L01]
+    B -->|Radiofrecuencia| C[Receptor NRF24L01\nArduino Nano]
+    C --> D[Interfaz CAN\nMCP2515]
     D --> E[PLC del vehículo]
-    E --> F[Electroválvulas\nTraslación, dirección y nivelación]
-    C -. mensajes CAN .-> G[Robot simulador\nPruebas de laboratorio]
+    E --> F[Actuadores hidráulicos\nTraslación, dirección y nivelación]
+    D -. Ensayos de laboratorio .-> G[Robot simulador]
 ```
-
-El mando incorpora además pantalla Nextion, sistema de alimentación con baterías y BMS, y una carcasa diseñada en CAD e impresa en 3D. Se añadió Bluetooth HC-05 para monitorización. Durante las pruebas de campo, el módulo NRF24L01 estándar mostró poco alcance; se sustituyó por la variante NRF24L01+PA+LNA para mejorar el enlace.
 
 ## Progreso del proyecto
 
-La galería recoge hitos sucesivos del trabajo. Son imágenes originales extraídas de la memoria del TFM.
+La galería recoge hitos sucesivos del desarrollo, desde los prototipos y la fabricación hasta las pruebas en el vehículo.
 
 ### Mando: prototipo, diseño y fabricación
 
@@ -85,17 +97,17 @@ La galería recoge hitos sucesivos del trabajo. Son imágenes originales extraí
 
 ## Código
 
-Los tres programas de los anexos de la memoria están organizados aquí por función:
+Los programas del emisor, el receptor y el robot simulador están organizados aquí por función:
 
-| Archivo | Función | Hardware descrito en la memoria |
+| Archivo | Función | Hardware |
 | --- | --- | --- |
 | [`src/emisor/emisor.ino`](src/emisor/emisor.ino) | Lectura y tratamiento de controles; transmisión de órdenes y señal periódica de actividad | Arduino Mega 2560, NRF24L01, pantalla Nextion |
 | [`src/receptor/receptor.ino`](src/receptor/receptor.ino) | Recepción de órdenes, envío transparente por CAN y gestión de pérdida de comunicación/parada | Arduino Nano, NRF24L01, MCP2515 |
 | [`src/simulador/simulador.ino`](src/simulador/simulador.ino) | Lectura e impresión por serie de mensajes CAN para apoyar las pruebas | Arduino con MCP2515 |
 
-El código se ha transcrito desde los anexos del PDF. La extracción puede conservar saltos de línea o detalles de formato propios de la memoria; conviene revisar cada archivo y configurar la placa y las bibliotecas antes de compilarlo o utilizarlo en hardware. La memoria no proporciona en un único lugar una configuración de compilación reproducible para las versiones actuales de PlatformIO y las bibliotecas.
+Los archivos contienen el código del proyecto organizado para consulta. Antes de compilarlo o conectarlo a hardware, revisa su formato y configura la placa, el entorno y las bibliotecas compatibles. El repositorio no incluye una configuración de compilación reproducible de PlatformIO.
 
-Las bibliotecas que aparecen en los programas incluyen RF24, MCP2515 y Nextion, además de las bibliotecas estándar de Arduino. La tasa CAN indicada para el receptor es 500 kbit/s. Comprueba también que el cableado, la velocidad CAN y los identificadores de mensaje coinciden con el PLC concreto.
+Las bibliotecas utilizadas incluyen RF24, MCP2515 y Nextion, además de las bibliotecas estándar de Arduino. La velocidad CAN configurada en el receptor es de 500 kbit/s. El cableado y los identificadores de mensaje deben corresponder a la configuración del PLC del vehículo.
 
 ## Estructura
 
@@ -103,8 +115,7 @@ Las bibliotecas que aparecen en los programas incluyen RF24, MCP2515 y Nextion, 
 .
 ├── README.md
 ├── docs/
-│   ├── TFM_ASC.pdf
-│   └── imagenes/          # Páginas ilustrativas extraídas de la memoria
+│   └── imagenes/          # Fotografías y diseños del proyecto
 └── src/
     ├── emisor/emisor.ino
     ├── receptor/receptor.ino
@@ -115,4 +126,4 @@ Las bibliotecas que aparecen en los programas incluyen RF24, MCP2515 y Nextion, 
 
 **Serrano Corral, Antonio.** *Control remoto de un vehículo no tripulado agrícola*. Trabajo Fin de Máster, Máster en Ingeniería Industrial, Universidad de Córdoba, septiembre de 2021. Director: Rafael Rubén Sola Guirado.
 
-La memoria reconoce la financiación del proyecto Innolivar y el apoyo de Interaceituna. Para reutilizar el documento, el código o las imágenes fuera de este contexto, consulta las condiciones de derechos aplicables; este repositorio no añade una licencia que no figure en la memoria.
+El repositorio no especifica una licencia de reutilización para las imágenes y el código.
